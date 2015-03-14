@@ -48,13 +48,12 @@ class DoFona():
 		# Start Serial
 		self.ser = serial.Serial(TTL_PORT, TTL_SPEED)
 		
+		# Initial Start
+		self.DebugPrint("Starting DigtalOcean FONA SMS Engine")
+		
 		# Make sure FONA is setup
 		self.DebugPrint('Resetting FONA device')
 		self.FONAReset()
-
-		# Delete all SMS Messages in storage
-		self.DebugPrint('Erasing all SMS Messages in Storage')
-		self.FONAWrite("AT+CMGD=1,4")
 		
 	# Debug Function. Used so we can manipulate logging later if needed
 	def DebugPrint(self, msg):
@@ -95,7 +94,9 @@ class DoFona():
 		self.FONAWrite("AE0") # Disable Typing Output
 		self.FONAWrite("AT+CFGRI=1") # Indicate RI Pin on SMS
 		self.FONAWrite("AT+CMGF=1") # Set TXT to use TEXT input
-
+		self.DebugPrint('FONAReset: Erasing all SMS Messages in Storage')
+		self.FONAWrite("AT+CMGD=1,4") # Delete all SMS Messages in storage
+		
 	# Lookup latest SMS message
 	def FONASMSLookup(self):
 		# define vars
@@ -141,10 +142,8 @@ class DoFona():
 		self.FONAWrite(message + "\x1A") # Send the body
 
 	def start(self):
-		self.DebugPrint("Starting DigtalOcean FONA SMS Engine")
-		
 		# Start Main Loop
-		self.DebugPrint('Starting Listener Loop...')
+		self.DebugPrint('Starting SMS Listener...')
 		while True:
 			# Is serial open?
 			if self.ser.isOpen() == False:
@@ -153,8 +152,7 @@ class DoFona():
 			if GPIO.input(PSPin) != 1:
 					self.DebugPrint('SIM800L Unit is Offline! Resetting...')
 					self.FONAReset()
-					time.sleep(5)
-					self.FONASetup()
+					time.sleep(3)
 					self.DebugPrint('SIM800L has been reset and resetup! Resuming listening...')
 					continue
 			# Do we have a message? GPIO will change state on message
@@ -280,7 +278,7 @@ class DoFona():
 						# All other cases
 						else:
 							self.DebugPrint('Catch-All Else Case');
-							self.FONASMSSend(Sender, 'Error: please check your syntax.\n\n\n\nSee droplet help for usage.')
+							self.FONASMSSend(Sender, 'Error: please check your syntax.\nSee droplet help for usage.')
 					else:
 						self.DebugPrint('No valid command, replying with default response');
 						self.FONASMSSend(Sender,"You Send Me " + MessageRcvd + '\n- Sent from DoFona!')
